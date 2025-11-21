@@ -6,6 +6,7 @@ import "go.temporal.io/sdk/worker"
 // RegisterActivities registers all activities with the given Temporal worker
 func RegisterActivities(w worker.Worker, activitiesClient *ActivitiesClient) {
 	// Register audio processing activities
+	// Temporal will use the method names as activity names
 	w.RegisterActivity(activitiesClient.IngestRawAudio)
 	w.RegisterActivity(activitiesClient.TrimSilence)
 }

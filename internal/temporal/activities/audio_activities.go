@@ -15,7 +15,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// IngestRawAudio ingests a raw audio file, registers it as an asset,
+// in this file we define the following activities:
+// - IngestRawAudio
+// - TrimSilence
+// - FindNonSilentRange
+
+// IngestRawAudio is an activity that ingests a raw audio file, registers it as an asset,
 // computes its content hash, and extracts basic metadata.
 func (ac *ActivitiesClient) IngestRawAudio(ctx context.Context, input IngestRawAudioInput) (*IngestRawAudioOutput, error) {
 	// Read the audio file

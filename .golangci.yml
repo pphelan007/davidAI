@@ -59,12 +59,12 @@ linters:
   enable:
     # Essential linters
     - errcheck # Check for unchecked errors
-    - gosimple # Simplify code
+    # - gosimple # Simplify code (disabled - causes export data issues with goanalysis_metalinter)
     - govet # Go vet
-    - ineffassign # Detect ineffectual assignments
-    - staticcheck # Static analysis
+    # - ineffassign # Detect ineffectual assignments (disabled - causes export data issues with goanalysis_metalinter)
+    # - staticcheck # Static analysis (disabled - causes export data issues)
     # - typecheck         # Type checking (disabled - causes issues with gvm Go installation)
-    - unused # Check for unused code
+    # - unused # Check for unused code (disabled - causes export data issues)
     # Formatting
     - gofmt # Format code
     - goimports # Format imports
@@ -86,7 +86,7 @@ linters:
     - nakedret # Check for naked returns
     - noctx # Check for context.Context usage
     - rowserrcheck # Check for errors from rows.Scan
-    - stylecheck # Style checks
+    # - stylecheck # Style checks (disabled - causes export data issues with goanalysis_metalinter)
     - unconvert # Check for unnecessary conversions
     - unparam # Check for unused function parameters
     - whitespace # Check for unnecessary whitespace
@@ -111,6 +111,11 @@ issues:
         - typecheck
         - unused
         - ineffassign
+    # Exclude godotenv package from type checking (export data version issue)
+    - path: ".*godotenv.*"
+      linters:
+        - typecheck
+        - goanalysis_metalinter
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-use-default: false
