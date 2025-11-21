@@ -2,6 +2,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -16,8 +17,15 @@ func Run(cfg *config.Config) error {
 	// Using standard log package for now, can be upgraded to zerolog later
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	// 2. Create the Worker Object
-	worker, err := temporal.NewWorker()
+	// 2. Create Temporal Client
+	temporalClient, err := temporal.NewTemporalClient(context.Background(), cfg.Temporal.Address, cfg.Temporal.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to create temporal client: %w", err)
+	}
+	defer temporalClient.Close()
+
+	// 3. Create the Worker Object
+	worker, err := temporal.NewWorker(temporalClient.GetClient(), cfg.Temporal.TaskQueue)
 	if err != nil {
 		return fmt.Errorf("failed to create worker: %w", err)
 	}

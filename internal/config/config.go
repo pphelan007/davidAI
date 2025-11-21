@@ -10,14 +10,23 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	App    AppConfig
-	Log    LogConfig
-	Worker WorkerConfig
+	App      AppConfig
+	Log      LogConfig
+	Worker   WorkerConfig
+	Temporal TemporalConfig
 }
 
 // WorkerConfig holds worker configuration
 type WorkerConfig struct {
 	NumWorkers int
+}
+
+// TemporalConfig holds Temporal configuration
+type TemporalConfig struct {
+	Address     string
+	Namespace   string
+	TaskQueue   string
+	WorkerCount int
 }
 
 // AppConfig holds application configuration
@@ -41,6 +50,11 @@ func Load() (*Config, error) {
 		numWorkers = 1
 	}
 
+	workerCount, err := strconv.Atoi(getEnv("TEMPORAL_WORKER_COUNT", "1"))
+	if err != nil {
+		workerCount = 1
+	}
+
 	return &Config{
 		App: AppConfig{
 			Name: getEnv("APP_NAME", "gostarter"),
@@ -51,6 +65,12 @@ func Load() (*Config, error) {
 		},
 		Worker: WorkerConfig{
 			NumWorkers: numWorkers,
+		},
+		Temporal: TemporalConfig{
+			Address:     getEnv("TEMPORAL_ADDRESS", "localhost:7233"),
+			Namespace:   getEnv("TEMPORAL_NAMESPACE", "default"),
+			TaskQueue:   getEnv("TEMPORAL_TASK_QUEUE", "davidai-task-queue"),
+			WorkerCount: workerCount,
 		},
 	}, nil
 }
