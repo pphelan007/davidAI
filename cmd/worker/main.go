@@ -14,7 +14,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Run the worker (blocks until shutdown)
+	// Run the worker
 	if err := internal.Run(cfg); err != nil {
 		log.Fatalf("Worker error: %v", err)
 	}

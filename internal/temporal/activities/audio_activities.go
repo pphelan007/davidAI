@@ -13,6 +13,9 @@ import (
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"github.com/google/uuid"
+	"go.temporal.io/sdk/activity"
+
+	"github.com/pphelan007/davidAI/internal/database"
 )
 
 // in this file we define the following activities:
@@ -85,8 +88,24 @@ func (ac *ActivitiesClient) IngestRawAudio(ctx context.Context, input IngestRawA
 		},
 	}
 
-	// TODO: Store asset in database/storage system
-	// For now, we just return the asset info
+	// Store asset in database
+	if ac.dbClient != nil {
+		activityInfo := activity.GetInfo(ctx)
+		dbAsset := &database.Asset{
+			ID:            assetID,
+			WorkflowID:    activityInfo.WorkflowExecution.ID,
+			WorkflowRunID: activityInfo.WorkflowExecution.RunID,
+			ParentAssetID: nil, // Root asset has no parent
+			FilePath:      input.FilePath,
+			ContentHash:   contentHash,
+			AssetType:     "ingested",
+			CreatedAt:     time.Now(),
+		}
+		if err := ac.dbClient.InsertAsset(dbAsset); err != nil {
+			// Log error but don't fail the activity
+			activity.GetLogger(ctx).Error("Failed to insert asset into database", "error", err)
+		}
+	}
 
 	return &IngestRawAudioOutput{
 		Asset: asset,
@@ -221,7 +240,26 @@ func (ac *ActivitiesClient) TrimSilence(ctx context.Context, input TrimSilenceIn
 	if contentHash != originalHash {
 		newAssetID := uuid.New().String()
 		output.NewAssetID = newAssetID
-		// TODO: Register new asset in storage system
+
+		// Store trimmed asset in database
+		if ac.dbClient != nil {
+			activityInfo := activity.GetInfo(ctx)
+			parentAssetID := input.AssetID
+			dbAsset := &database.Asset{
+				ID:            newAssetID,
+				WorkflowID:    activityInfo.WorkflowExecution.ID,
+				WorkflowRunID: activityInfo.WorkflowExecution.RunID,
+				ParentAssetID: &parentAssetID,
+				FilePath:      outputPath,
+				ContentHash:   contentHash,
+				AssetType:     "trimmed",
+				CreatedAt:     time.Now(),
+			}
+			if err := ac.dbClient.InsertAsset(dbAsset); err != nil {
+				// Log error but don't fail the activity
+				activity.GetLogger(ctx).Error("Failed to insert trimmed asset into database", "error", err)
+			}
+		}
 	} else {
 		// Hashes are identical (shouldn't happen if we trimmed, but handle it)
 		output.NoOp = true

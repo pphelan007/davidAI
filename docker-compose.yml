@@ -1,6 +1,26 @@
 version: "3.8"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: davidai-postgres
+    environment:
+      POSTGRES_USER: davidai
+      POSTGRES_PASSWORD: davidai
+      POSTGRES_DB: davidai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gostarter-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U davidai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -13,7 +33,13 @@ services:
     restart: unless-stopped
     networks:
       - gostarter-network
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 networks:
   gostarter-network:
     driver: bridge
+
+volumes:
+  postgres_data:

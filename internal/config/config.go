@@ -14,6 +14,7 @@ type Config struct {
 	Log      LogConfig
 	Worker   WorkerConfig
 	Temporal TemporalConfig
+	Database DatabaseConfig
 }
 
 // WorkerConfig holds worker configuration
@@ -40,6 +41,16 @@ type LogConfig struct {
 	Level string
 }
 
+// DatabaseConfig holds database configuration
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	// Try to load .env file (ignore error if it doesn't exist)
@@ -53,6 +64,11 @@ func Load() (*Config, error) {
 	workerCount, err := strconv.Atoi(getEnv("TEMPORAL_WORKER_COUNT", "1"))
 	if err != nil {
 		workerCount = 1
+	}
+
+	dbPort, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
+	if err != nil {
+		dbPort = 5432
 	}
 
 	return &Config{
@@ -71,6 +87,14 @@ func Load() (*Config, error) {
 			Namespace:   getEnv("TEMPORAL_NAMESPACE", "default"),
 			TaskQueue:   getEnv("TEMPORAL_TASK_QUEUE", "davidai-task-queue"),
 			WorkerCount: workerCount,
+		},
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     dbPort,
+			User:     getEnv("DB_USER", "davidai"),
+			Password: getEnv("DB_PASSWORD", "davidai"),
+			DBName:   getEnv("DB_NAME", "davidai"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 	}, nil
 }

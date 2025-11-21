@@ -8,6 +8,7 @@ import (
 	"go.temporal.io/sdk/client"
 
 	"github.com/pphelan007/davidAI/internal/config"
+	"github.com/pphelan007/davidAI/internal/database"
 	"github.com/pphelan007/davidAI/internal/temporal/activities"
 )
 
@@ -20,23 +21,31 @@ type Runner struct {
 }
 
 // NewRunner creates a new runner instance with Temporal client, activity client, and worker
-func NewRunner(ctx context.Context, cfg *config.TemporalConfig) (*Runner, error) {
+func NewRunner(ctx context.Context, cfg *config.TemporalConfig, dbCfg *config.DatabaseConfig) (*Runner, error) {
+	// Create database client
+	dbClient, err := database.NewClient(dbCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create database client: %w", err)
+	}
+
 	// Create Temporal client
 	temporalClient, err := client.Dial(client.Options{
 		HostPort:  cfg.Address,
 		Namespace: cfg.Namespace,
 	})
 	if err != nil {
+		dbClient.Close()
 		return nil, fmt.Errorf("failed to create Temporal client: %w", err)
 	}
 
 	// Create activities client
-	activitiesClient := activities.NewActivitiesClient(ctx, temporalClient)
+	activitiesClient := activities.NewActivitiesClient(ctx, temporalClient, dbClient)
 
 	// Create worker
-	worker, err := NewWorker(temporalClient, cfg.TaskQueue)
+	worker, err := NewWorker(temporalClient, cfg.TaskQueue, dbClient)
 	if err != nil {
 		temporalClient.Close()
+		dbClient.Close()
 		return nil, fmt.Errorf("failed to create worker: %w", err)
 	}
 

@@ -1,4 +1,4 @@
-.PHONY: build run test clean docker-build docker-run help lint lint-fix lint-install dev temporal-start temporal-stop build-client trigger-workflow
+.PHONY: build run test clean docker-build docker-run help lint lint-fix lint-install dev temporal-start temporal-stop build-client trigger-workflow db db-down
 
 # Variables
 BINARY_NAME=worker
@@ -20,8 +20,10 @@ build-client:
 	@echo "✅ Built successfully: bin/$(CLIENT_BINARY_NAME)"
 
 # Run the application (starts Temporal dev server and worker)
+# Note: Start the database separately with 'make db' before running this
 run: build
 	@echo "Starting Temporal dev server and worker..."
+	@echo "Note: Make sure PostgreSQL is running (use 'make db' in another terminal)"
 	@echo "Temporal Service will be available on localhost:7233"
 	@echo "Temporal Web UI will be available at http://localhost:8233"
 	@trap 'pkill -f "temporal server start-dev" || true' EXIT INT TERM; \
@@ -143,6 +145,20 @@ trigger-workflow: build-client
 		./bin/$(CLIENT_BINARY_NAME) $(FILE_PATH); \
 	fi
 
+# Start PostgreSQL database (tears down on Ctrl+C)
+db:
+	@echo "Starting PostgreSQL database..."
+	@echo "Database will be available on localhost:5432"
+	@echo "Press CTRL+C to stop and tear down the database"
+	@trap 'echo ""; echo "Tearing down database..."; docker-compose down postgres 2>/dev/null || true; exit 0' EXIT INT TERM; \
+	docker-compose up postgres
+
+# Stop and remove PostgreSQL database
+db-down:
+	@echo "Stopping and removing PostgreSQL database..."
+	@docker-compose down postgres
+	@echo "✅ Database stopped and removed"
+
 # Help
 help:
 	@echo "Available targets:"
@@ -163,4 +179,6 @@ help:
 	@echo "  temporal-start-persist - Start Temporal dev server (persistent DB)"
 	@echo "  build-client       - Build the workflow client binary"
 	@echo "  trigger-workflow   - Trigger AudioProcessingWorkflow (default: data/sine440.wav)"
+	@echo "  db                 - Start PostgreSQL database (tears down on Ctrl+C)"
+	@echo "  db-down            - Stop and remove PostgreSQL database"
 

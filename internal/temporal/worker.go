@@ -1,3 +1,4 @@
+// Package temporal provides Temporal workflow and activity management.
 package temporal
 
 import (
@@ -8,6 +9,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 
+	"github.com/pphelan007/davidAI/internal/database"
 	"github.com/pphelan007/davidAI/internal/temporal/activities"
 	"github.com/pphelan007/davidAI/internal/temporal/workflows"
 )
@@ -20,10 +22,11 @@ type Worker struct {
 	cancel         context.CancelFunc
 	wg             sync.WaitGroup
 	taskQueue      string
+	dbClient       *database.Client
 }
 
 // NewWorker creates a new worker instance
-func NewWorker(c client.Client, taskQueue string) (*Worker, error) {
+func NewWorker(c client.Client, taskQueue string, dbClient *database.Client) (*Worker, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Create Temporal worker
@@ -35,6 +38,7 @@ func NewWorker(c client.Client, taskQueue string) (*Worker, error) {
 		ctx:            ctx,
 		cancel:         cancel,
 		taskQueue:      taskQueue,
+		dbClient:       dbClient,
 	}, nil
 }
 
@@ -58,7 +62,7 @@ func (w *Worker) Start(numWorkers int) {
 	w.RegisterWorkflows()
 
 	// Create activities client and register activities
-	activitiesClient := activities.NewActivitiesClient(w.ctx, w.client)
+	activitiesClient := activities.NewActivitiesClient(w.ctx, w.client, w.dbClient)
 	w.RegisterActivities(activitiesClient)
 
 	// Start the worker in a goroutine
@@ -85,6 +89,9 @@ func (w *Worker) Stop() error {
 	w.cancel()
 	w.temporalWorker.Stop()
 	w.wg.Wait()
+	if w.dbClient != nil {
+		w.dbClient.Close()
+	}
 	log.Println("Temporal worker stopped")
 	return nil
 }
