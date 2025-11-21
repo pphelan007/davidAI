@@ -1,0 +1,151 @@
+# Default values for worker
+# This is a YAML-formatted file.
+
+replicaCount: 2
+
+image:
+  repository: worker
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  # Service disabled since there's no HTTP server
+  enabled: false
+  type: ClusterIP # Options: ClusterIP, NodePort, LoadBalancer
+  port: 80
+  targetPort: 8080
+  # Optional: metrics port for Prometheus scraping
+  # metricsPort: 9090
+  # LoadBalancer specific settings
+  # loadBalancerIP: ""  # Static IP for LoadBalancer (cloud provider specific)
+  # loadBalancerSourceRanges: []  # Allowed source IP ranges
+  # externalTrafficPolicy: Local  # Preserve source IP (Local or Cluster)
+  # Service annotations (useful for cloud provider specific settings)
+  annotations:
+    {}
+    # Example for AWS:
+    # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    # service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    # Example for GCP:
+    # cloud.google.com/load-balancer-type: "External"
+  # Session affinity (optional)
+  # sessionAffinity: ClientIP
+  # sessionAffinityConfig:
+  #   clientIP:
+  #     timeoutSeconds: 10800
+
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: worker.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: worker-tls
+  #    hosts:
+  #      - worker.local
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Application configuration
+# These values can be overridden via ArgoCD parameters for post-deployment configuration
+# Example ArgoCD Application override:
+#   spec:
+#     source:
+#       helm:
+#         parameters:
+#           - name: config.worker.numWorkers
+#             value: "4"
+#           - name: config.log.level
+#             value: "debug"
+#           - name: config.server.port
+#             value: "9090"
+config:
+  # Worker configuration
+  worker:
+    numWorkers: 2 # Number of worker goroutines per pod
+
+  # Application configuration
+  app:
+    name: "worker"
+    env: "production" # Options: development, staging, production
+
+  # Logging configuration
+  log:
+    level: "info" # Options: debug, info, warn, error
+
+# Additional environment variables (for non-config values)
+env: []
+
+# ConfigMap for configuration
+# Enabled by default to allow post-deployment configuration changes
+configMap:
+  enabled: true
+  # ConfigMap data is automatically generated from config section above
+
+# Secret for sensitive data
+secret:
+  enabled: false
+  data: {}
+
+# Health check configuration (disabled since there's no HTTP server)
+livenessProbe: {}
+readinessProbe: {}
+startupProbe: {}

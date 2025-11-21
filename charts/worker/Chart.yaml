@@ -1,0 +1,12 @@
+apiVersion: v2
+name: worker
+description: A Helm chart for the address matching worker service
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - go
+  - worker
+maintainers:
+  - name: Patrick Phelan
+    email: patrickphelan724@gmail.com

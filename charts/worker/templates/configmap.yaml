@@ -1,0 +1,24 @@
+{{- if .Values.configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "worker.fullname" . }}-config
+  labels:
+    {{- include "worker.labels" . | nindent 4 }}
+data:
+  # Worker configuration
+  NUM_WORKERS: {{ .Values.config.worker.numWorkers | toString | quote }}
+  
+  # Application configuration
+  APP_NAME: {{ .Values.config.app.name | quote }}
+  ENV: {{ .Values.config.app.env | quote }}
+  
+  # Logging configuration
+  LOG_LEVEL: {{ .Values.config.log.level | quote }}
+  
+  # Additional configMap data (if provided)
+  {{- with .Values.configMap.data }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}
+

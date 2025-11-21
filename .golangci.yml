@@ -1,0 +1,116 @@
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - bin
+    - .git
+    - .gvm
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+  build-tags:
+    - ""
+  modules-download-mode: readonly
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+  gocyclo:
+    min-complexity: 15
+  goimports:
+    local-prefixes: github.com/yourusername/gostarter
+  govet:
+    check-shadowing: true
+  lll:
+    line-length: 140
+  misspell:
+    locale: US
+  nolintlint:
+    allow-leading-space: true
+    allow-unused: false
+    require-explanation: false
+    require-specific: false
+
+linters:
+  disable-all: true
+  enable:
+    # Essential linters
+    - errcheck # Check for unchecked errors
+    - gosimple # Simplify code
+    - govet # Go vet
+    - ineffassign # Detect ineffectual assignments
+    - staticcheck # Static analysis
+    # - typecheck         # Type checking (disabled - causes issues with gvm Go installation)
+    - unused # Check for unused code
+    # Formatting
+    - gofmt # Format code
+    - goimports # Format imports
+    # Security
+    - gosec # Security checker
+    # Style
+    - misspell # Spell checker
+    - goconst # Find repeated strings
+    - gocyclo # Check cyclomatic complexity
+    - dupl # Check for duplicated code
+    - funlen # Check function length
+    - gocritic # Opinionated code checker
+    - lll # Check line length
+    - nolintlint # Check nolint directives
+    - exportloopref # Check for exporting loop variables
+    - exhaustive # Check exhaustiveness of enum switch statements
+    - gochecknoinits # Check for init functions
+    - goprintffuncname # Check printf-like function names
+    - nakedret # Check for naked returns
+    - noctx # Check for context.Context usage
+    - rowserrcheck # Check for errors from rows.Scan
+    - stylecheck # Style checks
+    - unconvert # Check for unnecessary conversions
+    - unparam # Check for unused function parameters
+    - whitespace # Check for unnecessary whitespace
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - funlen
+        - goconst
+    - path: cmd/
+      linters:
+        - errcheck
+    - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
+      linters:
+        - errcheck
+    # Exclude standard library errors (likely due to Go installation issues)
+    - path: ".*/go1\\.23\\.3/src/.*"
+      linters:
+        - typecheck
+        - unused
+        - ineffassign
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-use-default: false

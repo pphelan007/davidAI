@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gostarter-api
+    environment:
+      - ENV=development
+      - LOG_LEVEL=info
+      - APP_NAME=gostarter
+    restart: unless-stopped
+    networks:
+      - gostarter-network
+
+networks:
+  gostarter-network:
+    driver: bridge
