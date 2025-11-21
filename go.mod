@@ -1,4 +1,4 @@
-module github.com/yourusername/gostarter
+module github.com/pphelan007/davidAI
 
 go 1.24.0
 

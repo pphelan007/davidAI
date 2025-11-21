@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yourusername/gostarter/internal/config"
-	"github.com/yourusername/gostarter/internal/utils"
-	"github.com/yourusername/gostarter/internal/workflows"
+	"github.com/pphelan007/davidAI/internal/config"
+	"github.com/pphelan007/davidAI/internal/temporal"
+	"github.com/pphelan007/davidAI/internal/utils"
 )
 
 // Run starts the worker and blocks until shutdown
@@ -17,7 +17,7 @@ func Run(cfg *config.Config) error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// 2. Create the Worker Object
-	worker, err := workflows.NewWorker()
+	worker, err := temporal.NewWorker()
 	if err != nil {
 		return fmt.Errorf("failed to create worker: %w", err)
 	}

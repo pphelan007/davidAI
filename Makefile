@@ -1,4 +1,4 @@
-.PHONY: build run test clean docker-build docker-run help lint lint-fix lint-install dev
+.PHONY: build run test clean docker-build docker-run help lint lint-fix lint-install dev temporal-start temporal-stop
 
 # Variables
 BINARY_NAME=worker
@@ -86,6 +86,23 @@ docker-run:
 	@echo "Running Docker container..."
 	@docker-compose up
 
+# Start Temporal dev server
+temporal-start:
+	@echo "Starting Temporal dev server..."
+	@echo "Temporal Service will be available on localhost:7233"
+	@echo "Temporal Web UI will be available at http://localhost:8233"
+	@echo "Press CTRL+C to stop the server"
+	@temporal server start-dev
+
+# Start Temporal dev server with persistent database
+temporal-start-persist:
+	@echo "Starting Temporal dev server with persistent database..."
+	@echo "Temporal Service will be available on localhost:7233"
+	@echo "Temporal Web UI will be available at http://localhost:8233"
+	@echo "Database will be saved to temporal.db"
+	@echo "Press CTRL+C to stop the server"
+	@temporal server start-dev --db-filename temporal.db
+
 # Help
 help:
 	@echo "Available targets:"
@@ -102,4 +119,6 @@ help:
 	@echo "  deps               - Download dependencies"
 	@echo "  docker-build       - Build Docker image"
 	@echo "  docker-run         - Run with docker-compose"
+	@echo "  temporal-start     - Start Temporal dev server (in-memory)"
+	@echo "  temporal-start-persist - Start Temporal dev server (persistent DB)"
 
