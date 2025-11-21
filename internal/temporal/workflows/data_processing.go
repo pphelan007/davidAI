@@ -21,6 +21,7 @@ type AudioProcessingWorkflowInput struct {
 type AudioProcessingWorkflowOutput struct {
 	IngestedAsset activities.AssetInfo         `json:"ingested_asset"`
 	TrimmedOutput activities.TrimSilenceOutput `json:"trimmed_output"`
+	SnrOutput     activities.ComputeSNROutput  `json:"snr_output"`
 }
 
 // AudioProcessingWorkflow is a simple workflow that ingests raw audio and trims silence
@@ -57,9 +58,28 @@ func AudioProcessingWorkflow(ctx workflow.Context, input AudioProcessingWorkflow
 		return nil, fmt.Errorf("failed to trim silence: %w", err)
 	}
 
+	// Step 3: Compute SNR
+	// Use trimmed file path if available, otherwise use original
+	filePathForSNR := ingestOutput.Asset.FilePath
+	if trimOutput.OutputPath != "" {
+		filePathForSNR = trimOutput.OutputPath
+	}
+
+	var snrOutput *activities.ComputeSNROutput
+	err = workflow.ExecuteActivity(ctx, "ComputeSNR", activities.ComputeSNRInput{
+		AssetID:           ingestOutput.Asset.AssetID,
+		FilePath:          filePathForSNR,
+		NoiseThreshold:    0.01,
+		UseSilentSegments: true,
+	}).Get(ctx, &snrOutput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute SNR: %w", err)
+	}
+
 	return &AudioProcessingWorkflowOutput{
 		IngestedAsset: ingestOutput.Asset,
 		TrimmedOutput: *trimOutput,
+		SnrOutput:     *snrOutput,
 	}, nil
 }
 

@@ -42,3 +42,20 @@ type TrimSilenceOutput struct {
 	NoOp        bool   `json:"no_op"`                 // true if trimmed audio is identical to original
 	OutputPath  string `json:"output_path,omitempty"` // path to trimmed audio file if created
 }
+
+// ComputeSNRInput is the input for the ComputeSNR activity
+type ComputeSNRInput struct {
+	AssetID           string  `json:"asset_id"`            // ID of the asset to compute SNR for
+	FilePath          string  `json:"file_path"`           // path to the audio file
+	NoiseThreshold    float64 `json:"noise_threshold"`     // threshold for noise detection (0.0-1.0), default 0.01
+	UseSilentSegments bool    `json:"use_silent_segments"` // if true, estimate noise from silent segments; if false, use all samples below threshold
+}
+
+// ComputeSNROutput is the output from the ComputeSNR activity
+type ComputeSNROutput struct {
+	SNR         float64 `json:"snr"`          // Signal-to-Noise Ratio in dB
+	SignalPower float64 `json:"signal_power"` // signal power (RMS squared)
+	NoisePower  float64 `json:"noise_power"`  // noise power (RMS squared)
+	SignalRMS   float64 `json:"signal_rms"`   // Root Mean Square of signal
+	NoiseRMS    float64 `json:"noise_rms"`    // Root Mean Square of noise
+}

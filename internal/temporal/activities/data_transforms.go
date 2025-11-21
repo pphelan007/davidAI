@@ -22,6 +22,7 @@ import (
 // - IngestRawAudio
 // - TrimSilence
 // - FindNonSilentRange
+// - ComputeSNR
 
 // IngestRawAudio is an activity that ingests a raw audio file, registers it as an asset,
 // computes its content hash, and extracts basic metadata.
@@ -55,13 +56,8 @@ func (ac *ActivitiesClient) IngestRawAudio(ctx context.Context, input IngestRawA
 	sampleRate := int(format.SampleRate)
 	channels := int(format.NumChannels)
 
-	// Read all samples to calculate duration
-	buf := &audio.IntBuffer{
-		Format: format,
-		Data:   make([]int, 0),
-	}
-
-	_, err = decoder.PCMBuffer(buf)
+	// Read all samples to calculate duration using FullPCMBuffer
+	buf, err := decoder.FullPCMBuffer()
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode audio for metadata: %w", err)
 	}
@@ -98,7 +94,6 @@ func (ac *ActivitiesClient) IngestRawAudio(ctx context.Context, input IngestRawA
 			ParentAssetID: nil, // Root asset has no parent
 			FilePath:      input.FilePath,
 			ContentHash:   contentHash,
-			AssetType:     "ingested",
 			CreatedAt:     time.Now(),
 		}
 		if err := ac.dbClient.InsertAsset(dbAsset); err != nil {
@@ -142,18 +137,12 @@ func (ac *ActivitiesClient) TrimSilence(ctx context.Context, input TrimSilenceIn
 	sampleRate := int(format.SampleRate)
 	channels := int(format.NumChannels)
 
-	// Read all audio samples
-	var samples []int
-	buf := &audio.IntBuffer{
-		Format: format,
-		Data:   make([]int, 0),
-	}
-
-	_, err = decoder.PCMBuffer(buf)
+	// Read all audio samples using FullPCMBuffer
+	buf, err := decoder.FullPCMBuffer()
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode audio: %w", err)
 	}
-	samples = buf.Data
+	samples := buf.Data
 
 	// Find start and end of non-silent audio
 	startIdx, endIdx := findNonSilentRange(samples, channels, silenceThreshold, sampleRate, minSilenceDuration)
@@ -252,7 +241,6 @@ func (ac *ActivitiesClient) TrimSilence(ctx context.Context, input TrimSilenceIn
 				ParentAssetID: &parentAssetID,
 				FilePath:      outputPath,
 				ContentHash:   contentHash,
-				AssetType:     "trimmed",
 				CreatedAt:     time.Now(),
 			}
 			if err := ac.dbClient.InsertAsset(dbAsset); err != nil {

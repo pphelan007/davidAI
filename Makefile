@@ -153,11 +153,11 @@ db:
 	@trap 'echo ""; echo "Tearing down database..."; docker-compose down postgres 2>/dev/null || true; exit 0' EXIT INT TERM; \
 	docker-compose up postgres
 
-# Stop and remove PostgreSQL database
+# Stop and remove PostgreSQL database (including volume/data)
 db-down:
-	@echo "Stopping and removing PostgreSQL database..."
-	@docker-compose down postgres
-	@echo "✅ Database stopped and removed"
+	@echo "Stopping and removing PostgreSQL database (this will delete all data)..."
+	@docker-compose down postgres -v
+	@echo "✅ Database stopped and removed (volume deleted)"
 
 # Help
 help:
@@ -180,5 +180,5 @@ help:
 	@echo "  build-client       - Build the workflow client binary"
 	@echo "  trigger-workflow   - Trigger AudioProcessingWorkflow (default: data/sine440.wav)"
 	@echo "  db                 - Start PostgreSQL database (tears down on Ctrl+C)"
-	@echo "  db-down            - Stop and remove PostgreSQL database"
+	@echo "  db-down            - Stop and remove PostgreSQL database (including volume/data)"
 

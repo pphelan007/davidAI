@@ -9,4 +9,5 @@ func RegisterActivities(w worker.Worker, activitiesClient *ActivitiesClient) {
 	// Temporal will use the method names as activity names
 	w.RegisterActivity(activitiesClient.IngestRawAudio)
 	w.RegisterActivity(activitiesClient.TrimSilence)
+	w.RegisterActivity(activitiesClient.ComputeSNR)
 }
