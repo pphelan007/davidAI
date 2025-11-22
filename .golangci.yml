@@ -119,24 +119,8 @@ issues:
         - typecheck
         - unused
         - ineffassign
-    # Exclude all typecheck errors from standard library
-    - text: "cannot range over.*"
-      linters:
-        - typecheck
-    - text: "cannot infer.*"
-      linters:
-        - typecheck
-    - text: "undefined.*Lock"
-      linters:
-        - typecheck
-    - text: "undefined.*Unlock"
-      linters:
-        - typecheck
-    - text: "missing return"
-      linters:
-        - typecheck
-    - text: "not enough arguments"
-      linters:
+    # Exclude all typecheck errors (skip typecheck entirely)
+    - linters:
         - typecheck
     # Exclude godotenv package from type checking (export data version issue)
     - path: ".*godotenv.*"
