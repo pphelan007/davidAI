@@ -177,37 +177,68 @@ make run
 
 ## CI/CD
 
-This project includes GitHub Actions workflows for continuous integration and deployment.
+This project includes GitHub Actions workflows for continuous integration and deployment with branch-based environment configuration.
 
 ### Workflows
 
 #### CI Workflow (`.github/workflows/ci.yml`)
 
-Runs on every push and pull request to `main`, `master`, or `develop` branches:
+Runs on every push and pull request to `main`, `master`, or `staging` branches:
 
-- **Test Job**: Runs Go tests with coverage
-- **Lint Job**: Runs code quality checks
-- **Build Job**: Builds Docker image for multiple platforms (amd64, arm64)
+- **Test Job**: Runs Go tests
+- **Lint Job**: Runs code quality checks with golangci-lint
+- **Build Job**: Builds the application binaries
 
-The Docker image is automatically pushed to GitHub Container Registry (GHCR) on pushes (not PRs).
+#### Deploy Workflow (`.github/workflows/deploy.yml`)
 
-#### Release Workflow (`.github/workflows/release.yml`)
+Automatically deploys based on branch:
 
-Runs when you push a tag starting with `v` (e.g., `v1.0.0`):
+- **Staging Branch**: Deploys to staging environment when code is pushed to `staging` branch
+- **Main/Master Branch**: Deploys to production environment when code is pushed to `main` or `master` branch
+- **Manual Deployment**: Can be triggered manually via GitHub Actions UI with environment selection
 
-- Runs tests
-- Builds and pushes Docker image with version tags
-- Creates a GitHub release
+The workflow:
+1. Determines the target environment based on the branch
+2. Builds and pushes Docker images with appropriate tags (`staging` or `latest`)
+3. Deploys to Kubernetes using Helm with environment-specific values files
+
+### Branch Strategy
+
+- **`staging` branch**: Automatically deploys to staging environment
+  - Uses `values/values-staging.yaml` for configuration
+  - Image tag: `staging`
+  - Namespace: `staging`
+  
+- **`main`/`master` branch**: Automatically deploys to production environment
+  - Uses `values/values-prod.yaml` for configuration
+  - Image tag: `latest`
+  - Namespace: `production`
 
 ### Using the CI/CD
 
-1. **Automatic builds**: Every push to main/master triggers a build
-2. **Image location**: Images are pushed to `ghcr.io/<your-username>/<repo-name>-worker`
+1. **Automatic deployments**: 
+   - Push to `staging` branch → deploys to staging
+   - Push to `main`/`master` branch → deploys to production
+
+2. **Image location**: Images are pushed to `ghcr.io/<your-username>/<repo-name>/worker`
+
 3. **Image tags**:
-   - `latest` - Latest build from default branch
+   - `staging` - Builds from staging branch
+   - `latest` - Builds from main/master branch
    - `<branch-name>` - Builds from specific branches
    - `<sha>` - Builds tagged with commit SHA
-   - `v1.0.0` - Semantic version tags
+
+4. **Manual deployment**: Use the "Run workflow" button in GitHub Actions to manually trigger deployments
+
+### Configuration
+
+To enable automatic deployments, you'll need to:
+
+1. Configure Kubernetes secrets in GitHub repository settings:
+   - Add `KUBECONFIG` secret with your Kubernetes cluster configuration
+   - Or configure `KUBE_CONFIG_DATA` secret
+
+2. Update the deploy workflow (`.github/workflows/deploy.yml`) with your actual Helm deployment commands (currently commented out)
 
 ### Pulling the Image
 
@@ -216,18 +247,9 @@ Runs when you push a tag starting with `v` (e.g., `v1.0.0`):
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
 # Pull the image
-docker pull ghcr.io/<your-username>/<repo-name>-worker:latest
+docker pull ghcr.io/<your-username>/<repo-name>/worker:latest
+docker pull ghcr.io/<your-username>/<repo-name>/worker:staging
 ```
-
-### Creating a Release
-
-```bash
-# Tag your release
-git tag -a v1.0.0 -m "Release version 1.0.0"
-git push origin v1.0.0
-```
-
-This will trigger the release workflow and create a GitHub release.
 
 ## Docker
 
@@ -256,13 +278,21 @@ docker-compose up -d
 
 ## Kubernetes Deployment
 
-This project includes a complete Helm chart for deploying to Kubernetes.
+This project includes a complete Helm chart for deploying to Kubernetes with support for staging and production environments.
 
 ### Prerequisites
 
 - Kubernetes cluster
 - Helm 3.x installed
 - kubectl configured
+
+### Environment-Specific Deployments
+
+The project includes separate Helm values files for different environments in the `charts/worker/values/` folder:
+
+- **Development**: `charts/worker/values/values-dev.yaml` - Minimal resources, debug logging, single replica
+- **Staging**: `charts/worker/values/values-staging.yaml` - Lower resource limits, debug logging, staging namespace
+- **Production**: `charts/worker/values/values-prod.yaml` - Higher resource limits, info logging, production namespace
 
 ### Deploy with Helm
 
@@ -287,23 +317,56 @@ image:
 # Install with default values
 helm install worker ./charts/worker
 
-# Install with custom values
-helm install worker ./charts/worker -f charts/worker/values.yaml
+# Install to development environment
+helm install worker ./charts/worker \
+  --namespace development \
+  --create-namespace \
+  -f charts/worker/values.yaml \
+  -f charts/worker/values/values-dev.yaml
 
-# Install to a specific namespace
-helm install worker ./charts/worker --namespace production --create-namespace
+# Install to staging environment
+helm install worker ./charts/worker \
+  --namespace staging \
+  --create-namespace \
+  -f charts/worker/values.yaml \
+  -f charts/worker/values/values-staging.yaml
+
+# Install to production environment
+helm install worker ./charts/worker \
+  --namespace production \
+  --create-namespace \
+  -f charts/worker/values.yaml \
+  -f charts/worker/values/values-prod.yaml
 ```
 
 4. Upgrade an existing release:
 
 ```bash
-helm upgrade worker ./charts/worker
+# Upgrade development
+helm upgrade worker ./charts/worker \
+  --namespace development \
+  -f charts/worker/values.yaml \
+  -f charts/worker/values/values-dev.yaml
+
+# Upgrade staging
+helm upgrade worker ./charts/worker \
+  --namespace staging \
+  -f charts/worker/values.yaml \
+  -f charts/worker/values/values-staging.yaml
+
+# Upgrade production
+helm upgrade worker ./charts/worker \
+  --namespace production \
+  -f charts/worker/values.yaml \
+  -f charts/worker/values/values-prod.yaml
 ```
 
 5. Uninstall:
 
 ```bash
-helm uninstall worker
+helm uninstall worker --namespace development
+helm uninstall worker --namespace staging
+helm uninstall worker --namespace production
 ```
 
 ### Helm Chart Features

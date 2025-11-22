@@ -4,8 +4,8 @@
 replicaCount: 2
 
 image:
-  repository: worker
-  pullPolicy: IfNotPresent
+  repository: davidai/worker
+  pullPolicy: Always
   tag: "latest"
 
 imagePullSecrets: []

@@ -1,0 +1,140 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - staging
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/worker
+
+jobs:
+  determine-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      values-file: ${{ steps.set-env.outputs.values-file }}
+      image-tag: ${{ steps.set-env.outputs.image-tag }}
+    steps:
+      - name: Set environment based on branch
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref }}" == "refs/heads/staging" ]; then
+            ENV="staging"
+          elif [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            ENV="production"
+          else
+            echo "No deployment for branch ${{ github.ref }}"
+            exit 0
+          fi
+          
+          if [ "$ENV" == "staging" ]; then
+            VALUES_FILE="values/values-staging.yaml"
+            IMAGE_TAG="staging"
+          else
+            VALUES_FILE="values/values-prod.yaml"
+            IMAGE_TAG="latest"
+          fi
+          
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "values-file=$VALUES_FILE" >> $GITHUB_OUTPUT
+          echo "image-tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Deploying to: $ENV with values file: $VALUES_FILE"
+
+  build-and-push:
+    needs: determine-environment
+    if: needs.determine-environment.outputs.environment != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ needs.determine-environment.outputs.image-tag }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [determine-environment, build-and-push]
+    if: needs.determine-environment.outputs.environment != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Deploy to Kubernetes
+        run: |
+          # Replace these with your actual Kubernetes deployment commands
+          # Example using Helm:
+          # helm upgrade --install worker ./charts/worker \
+          #   --namespace ${{ needs.determine-environment.outputs.environment }} \
+          #   --create-namespace \
+          #   -f ./charts/worker/${{ needs.determine-environment.outputs.values-file }} \
+          #   --set image.tag=${{ needs.determine-environment.outputs.image-tag }} \
+          #   --wait
+          
+          echo "Deploying to ${{ needs.determine-environment.outputs.environment }}"
+          echo "Values file: ${{ needs.determine-environment.outputs.values-file }}"
+          echo "Image tag: ${{ needs.determine-environment.outputs.image-tag }}"
+          
+          # Uncomment and configure the following when you have kubectl/helm access:
+          # helm upgrade --install worker ./charts/worker \
+          #   --namespace ${{ needs.determine-environment.outputs.environment }} \
+          #   --create-namespace \
+          #   -f ./charts/worker/values.yaml \
+          #   -f ./charts/worker/${{ needs.determine-environment.outputs.values-file }} \
+          #   --set image.tag=${{ needs.determine-environment.outputs.image-tag }} \
+          #   --wait
+
