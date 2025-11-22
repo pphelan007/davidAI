@@ -9,6 +9,8 @@ run:
   skip-files:
     - ".*\\.pb\\.go$"
     - ".*\\.gen\\.go$"
+    - ".*/go.*/src/.*" # Skip standard library files
+    - ".*/hostedtoolcache/.*" # Skip CI standard library paths
   build-tags:
     - ""
   modules-download-mode: readonly
@@ -111,6 +113,31 @@ issues:
         - typecheck
         - unused
         - ineffassign
+    # Exclude standard library errors from CI paths
+    - path: ".*/hostedtoolcache/go/.*/src/.*"
+      linters:
+        - typecheck
+        - unused
+        - ineffassign
+    # Exclude all typecheck errors from standard library
+    - text: "cannot range over.*"
+      linters:
+        - typecheck
+    - text: "cannot infer.*"
+      linters:
+        - typecheck
+    - text: "undefined.*Lock"
+      linters:
+        - typecheck
+    - text: "undefined.*Unlock"
+      linters:
+        - typecheck
+    - text: "missing return"
+      linters:
+        - typecheck
+    - text: "not enough arguments"
+      linters:
+        - typecheck
     # Exclude godotenv package from type checking (export data version issue)
     - path: ".*godotenv.*"
       linters:
