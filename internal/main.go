@@ -9,6 +9,7 @@ import (
 	"github.com/pphelan007/davidAI/internal/config"
 	"github.com/pphelan007/davidAI/internal/database"
 	"github.com/pphelan007/davidAI/internal/temporal"
+	"github.com/pphelan007/davidAI/internal/temporal/activities"
 	"github.com/pphelan007/davidAI/internal/utils"
 )
 
@@ -38,12 +39,16 @@ func Run(cfg *config.Config) error {
 		return fmt.Errorf("failed to create worker: %w", err)
 	}
 
-	// 5. Start Worker Routine
+	// 5. Create Activities Client
+	activitiesClient := activities.NewActivitiesClient(context.Background(), temporalClient.GetClient(), dbClient)
+
+	// 6. Start Worker Routine (closure captures activitiesClient)
 	workerRoutine := utils.NewWorkerRoutine(
 		"worker",
-		worker.Start,
+		func() {
+			worker.Start(activitiesClient)
+		},
 		worker.Stop,
-		cfg.Worker.NumWorkers,
 	)
 
 	mainWg, closeables, startErr := utils.StartRoutines([]utils.Routine{
@@ -54,21 +59,21 @@ func Run(cfg *config.Config) error {
 		return fmt.Errorf("failed to start routines: %w", startErr)
 	}
 
-	// 6. Log That Worker Started
-	log.Printf("Worker started with %d worker goroutines", cfg.Worker.NumWorkers)
+	// 7. Log That Worker Started
+	log.Println("Worker started")
 	log.Println("Worker running, waiting for shutdown signal...")
 
-	// 7. Block Until Shutdown
+	// 8. Block Until Shutdown
 	mainWg.Wait()
 
-	// 8. Cleanup (Reverse Order)
+	// 9. Cleanup (Reverse Order)
 	for i := len(closeables) - 1; i >= 0; i-- {
 		if err := closeables[i].Close(); err != nil {
 			log.Printf("Error closing %T: %v", closeables[i], err)
 		}
 	}
 
-	// 9. Log That Worker Stopped
+	// 10. Log That Worker Stopped
 	log.Println("Worker stopped")
 
 	return nil

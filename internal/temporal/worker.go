@@ -55,14 +55,13 @@ func (w *Worker) RegisterActivities(activitiesClient *activities.ActivitiesClien
 }
 
 // Start begins processing jobs
-func (w *Worker) Start(numWorkers int) {
-	log.Printf("Starting Temporal worker with %d worker goroutines on task queue: %s", numWorkers, w.taskQueue)
+func (w *Worker) Start(activitiesClient *activities.ActivitiesClient) {
+	log.Printf("Starting Temporal worker on task queue: %s", w.taskQueue)
 
 	// Register workflows and activities
 	w.RegisterWorkflows()
 
-	// Create activities client and register activities
-	activitiesClient := activities.NewActivitiesClient(w.ctx, w.client, w.dbClient)
+	// Register activities with the provided client
 	w.RegisterActivities(activitiesClient)
 
 	// Start the worker in a goroutine

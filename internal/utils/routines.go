@@ -118,19 +118,17 @@ func StartRoutines(routines []Routine) (*sync.WaitGroup, []Closeable, error) {
 
 // WorkerRoutine implements Routine for a worker that needs to be started and stopped
 type WorkerRoutine struct {
-	name    string
-	start   func(int) // Start function that takes number of workers (doesn't return error)
-	stop    func() error
-	workers int
+	name  string
+	start func() // Start function (doesn't return error)
+	stop  func() error
 }
 
 // NewWorkerRoutine creates a new worker routine
-func NewWorkerRoutine(name string, start func(int), stop func() error, numWorkers int) *WorkerRoutine {
+func NewWorkerRoutine(name string, start func(), stop func() error) *WorkerRoutine {
 	return &WorkerRoutine{
-		name:    name,
-		start:   start,
-		stop:    stop,
-		workers: numWorkers,
+		name:  name,
+		start: start,
+		stop:  stop,
 	}
 }
 
@@ -141,8 +139,8 @@ func (r *WorkerRoutine) Name() string {
 
 // Start starts the worker
 func (r *WorkerRoutine) Start(ctx context.Context) error {
-	log.Printf("Starting %s with %d worker goroutines", r.name, r.workers)
-	r.start(r.workers)
+	log.Printf("Starting %s", r.name)
+	r.start()
 
 	// Wait for context cancellation
 	<-ctx.Done()

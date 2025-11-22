@@ -19,15 +19,13 @@ type Config struct {
 
 // WorkerConfig holds worker configuration
 type WorkerConfig struct {
-	NumWorkers int
 }
 
 // TemporalConfig holds Temporal configuration
 type TemporalConfig struct {
-	Address     string
-	Namespace   string
-	TaskQueue   string
-	WorkerCount int
+	Address   string
+	Namespace string
+	TaskQueue string
 }
 
 // AppConfig holds application configuration
@@ -56,16 +54,6 @@ func Load() (*Config, error) {
 	// Try to load .env file (ignore error if it doesn't exist)
 	_ = godotenv.Load()
 
-	numWorkers, err := strconv.Atoi(getEnv("NUM_WORKERS", "1"))
-	if err != nil {
-		numWorkers = 1
-	}
-
-	workerCount, err := strconv.Atoi(getEnv("TEMPORAL_WORKER_COUNT", "1"))
-	if err != nil {
-		workerCount = 1
-	}
-
 	dbPort, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	if err != nil {
 		dbPort = 5432
@@ -79,14 +67,11 @@ func Load() (*Config, error) {
 		Log: LogConfig{
 			Level: getEnv("LOG_LEVEL", "info"),
 		},
-		Worker: WorkerConfig{
-			NumWorkers: numWorkers,
-		},
+		Worker: WorkerConfig{},
 		Temporal: TemporalConfig{
-			Address:     getEnv("TEMPORAL_ADDRESS", "localhost:7233"),
-			Namespace:   getEnv("TEMPORAL_NAMESPACE", "default"),
-			TaskQueue:   getEnv("TEMPORAL_TASK_QUEUE", "davidai-task-queue"),
-			WorkerCount: workerCount,
+			Address:   getEnv("TEMPORAL_ADDRESS", "localhost:7233"),
+			Namespace: getEnv("TEMPORAL_NAMESPACE", "default"),
+			TaskQueue: getEnv("TEMPORAL_TASK_QUEUE", "davidai-task-queue"),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
